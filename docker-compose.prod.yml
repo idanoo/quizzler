@@ -1,0 +1,46 @@
+services:
+  app:
+    image: ghcr.io/idanoo/quizzler:latest
+    env_file:
+      - .env
+    networks:
+      - quizzler
+    ports:
+      - "8132:8132"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.4
+    networks:
+      - quizzler
+    env_file:
+      - .env
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.4
+    networks:
+      - quizzler
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  quizzler:
+    enable_ipv6: true

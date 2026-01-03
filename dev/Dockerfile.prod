@@ -1,0 +1,35 @@
+# Frontend
+FROM node:24-alpine AS frontend-builder
+
+WORKDIR /build
+
+COPY web ./
+RUN npm ci
+RUN npm run build
+
+
+# Backend
+FROM golang:1.25-alpine AS backend-builder
+
+WORKDIR /build
+
+RUN apk add --no-cache gcc musl-dev
+
+COPY src/ ./
+RUN go mod tidy
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o main .
+
+
+# Final image
+FROM alpine:latest
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates
+
+COPY --from=backend-builder /build/main /app/main
+COPY --from=frontend-builder /build/dist /web
+
+EXPOSE 8132
+
+CMD ["/app/main"]
