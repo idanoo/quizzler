@@ -1,15 +1,17 @@
 <script>
   import { onMount, createEventDispatcher } from 'svelte';
-  import { getDecks, getDeck, getCards, createDeck } from '../lib/api.js';
+  import { getDecks, getDeck, getCards, createDeck, getPublicDecks } from '../lib/api.js';
   import Modal from './Modal.svelte';
 
   const dispatch = createEventDispatcher();
 
   let decks = [];
+  let publicDecks = [];
   let loading = true;
   let showModal = false;
   let newDeckName = '';
   let newDeckDescription = '';
+  let newDeckPublic = false;
   let modalError = '';
 
   onMount(async () => {
@@ -19,7 +21,7 @@
   async function loadDecks() {
     loading = true;
     try {
-      decks = await getDecks();
+      [decks, publicDecks] = await Promise.all([getDecks(), getPublicDecks()]);
     } catch (err) {
       console.error('Failed to load decks:', err);
     } finally {
@@ -31,9 +33,19 @@
     try {
       const deck = await getDeck(deckId);
       const cards = await getCards(deckId);
-      dispatch('openDeck', { deck, cards });
+      dispatch('openDeck', { deck, cards, isPublic: false });
     } catch (err) {
       console.error('Failed to open deck:', err);
+    }
+  }
+
+  async function openPublicDeck(deckId) {
+    try {
+      const deck = await getDeck(deckId);
+      const cards = await getCards(deckId);
+      dispatch('openDeck', { deck, cards, isPublic: true });
+    } catch (err) {
+      console.error('Failed to open public deck:', err);
     }
   }
 
@@ -44,7 +56,7 @@
       return;
     }
     try {
-      const deck = await createDeck(newDeckName, newDeckDescription);
+      const deck = await createDeck(newDeckName, newDeckDescription, newDeckPublic);
       const cards = await getCards(deck.id);
       closeModal();
       dispatch('openDeck', { deck, cards });
@@ -56,6 +68,7 @@
   function openModal() {
     newDeckName = '';
     newDeckDescription = '';
+    newDeckPublic = false;
     modalError = '';
     showModal = true;
   }
@@ -89,6 +102,27 @@
           <p>{deck.description || 'No description'}</p>
           <div class="deck-card-footer">
             <span class="card-count">🃏 {deck.card_count} cards</span>
+            {#if deck.public}
+              <span class="public-badge">Public</span>
+            {/if}
+          </div>
+        </button>
+      {/each}
+    </div>
+  {/if}
+
+  {#if publicDecks.length > 0}
+    <div class="section-header">
+      <h2>Public Decks</h2>
+    </div>
+    <div class="decks-grid">
+      {#each publicDecks as deck}
+        <button class="deck-card deck-card-public" onclick={() => openPublicDeck(deck.id)}>
+          <h3>{deck.name}</h3>
+          <p>{deck.description || 'No description'}</p>
+          <div class="deck-card-footer">
+            <span class="card-count">🃏 {deck.card_count} cards</span>
+            <span class="public-badge">Study Only</span>
           </div>
         </button>
       {/each}
@@ -116,6 +150,13 @@
           bind:value={newDeckDescription}
           placeholder="What is this deck about?"
         ></textarea>
+      </div>
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" bind:checked={newDeckPublic} />
+          <span>Make this deck public</span>
+        </label>
+        <p class="form-hint">Public decks can be viewed by anyone with the link</p>
       </div>
       {#if modalError}
         <p class="error-message">{modalError}</p>
@@ -221,6 +262,31 @@
     border-radius: var(--radius-sm);
   }
 
+  .public-badge {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .section-header {
+    margin-top: 48px;
+    margin-bottom: 24px;
+  }
+
+  .section-header h2 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .deck-card-public::before {
+    background: linear-gradient(90deg, var(--accent-secondary), var(--accent-primary));
+  }
+
   .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -246,6 +312,25 @@
 
   .modal-submit {
     width: 100%;
+    margin-top: 8px;
+  }
+
+  .checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent-primary);
+  }
+
+  .form-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
     margin-top: 8px;
   }
 </style>

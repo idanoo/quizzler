@@ -13,6 +13,7 @@
 
   export let deck;
   export let cards;
+  export let readOnly = false;
 
   const dispatch = createEventDispatcher();
 
@@ -23,6 +24,7 @@
 
   let deckName = '';
   let deckDescription = '';
+  let deckPublic = false;
   let cardFront = '';
   let cardBack = '';
   let importText = '';
@@ -42,6 +44,7 @@
   function openDeckModal() {
     deckName = deck.name;
     deckDescription = deck.description || '';
+    deckPublic = deck.public || false;
     modalError = '';
     showDeckModal = true;
   }
@@ -53,7 +56,7 @@
       return;
     }
     try {
-      const updated = await updateDeck(deck.id, deckName, deckDescription);
+      const updated = await updateDeck(deck.id, deckName, deckDescription, deckPublic);
       deck = { ...deck, ...updated };
       showDeckModal = false;
     } catch (err) {
@@ -171,18 +174,22 @@
       >
         Study
       </button>
-      <button class="btn btn-ghost" onclick={openDeckModal}>Edit</button>
-      <button class="btn btn-danger-ghost" onclick={handleDeleteDeck}>Delete</button>
+      {#if !readOnly}
+        <button class="btn btn-ghost" onclick={openDeckModal}>Edit</button>
+        <button class="btn btn-danger-ghost" onclick={handleDeleteDeck}>Delete</button>
+      {/if}
     </div>
   </div>
 
   <div class="cards-section">
     <div class="cards-header">
       <h3>Cards</h3>
-      <div class="cards-header-actions">
-        <button class="btn btn-ghost" onclick={openImportModal}>Import</button>
-        <button class="btn btn-secondary" onclick={() => openCardModal()}>+ Add Card</button>
-      </div>
+      {#if !readOnly}
+        <div class="cards-header-actions">
+          <button class="btn btn-ghost" onclick={openImportModal}>Import</button>
+          <button class="btn btn-secondary" onclick={() => openCardModal()}>+ Add Card</button>
+        </div>
+      {/if}
     </div>
 
     {#if cards.length === 0}
@@ -203,12 +210,14 @@
               <div class="card-side-label">Back</div>
               <div class="card-side-content">{card.back}</div>
             </div>
-            <div class="card-actions">
-              <button class="btn btn-ghost" onclick={() => openCardModal(card)}>Edit</button>
-              <button class="btn btn-danger-ghost" onclick={() => handleDeleteCard(card.id)}>
-                Delete
-              </button>
-            </div>
+            {#if !readOnly}
+              <div class="card-actions">
+                <button class="btn btn-ghost" onclick={() => openCardModal(card)}>Edit</button>
+                <button class="btn btn-danger-ghost" onclick={() => handleDeleteCard(card.id)}>
+                  Delete
+                </button>
+              </div>
+            {/if}
           </div>
         {/each}
       </div>
@@ -226,6 +235,13 @@
       <div class="form-group">
         <label for="deck-desc">Description</label>
         <textarea id="deck-desc" bind:value={deckDescription}></textarea>
+      </div>
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" bind:checked={deckPublic} />
+          <span>Make this deck public</span>
+        </label>
+        <p class="form-hint">Public decks can be viewed by anyone with the link</p>
       </div>
       {#if modalError}
         <p class="error-message">{modalError}</p>
@@ -355,6 +371,19 @@
     font-size: 0.8rem;
     color: var(--text-muted);
     margin-top: 8px;
+  }
+
+  .checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent-primary);
   }
 
   .cards-list {

@@ -19,7 +19,7 @@ func Init() error {
 	password := getEnv("MYSQL_PASSWORD", "quizzler")
 	dbname := getEnv("MYSQL_DATABASE", "quizzler")
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", user, password, host, port, dbname)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&multiStatements=true", user, password, host, port, dbname)
 
 	var err error
 	for i := 0; i < 30; i++ {

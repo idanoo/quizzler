@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -14,7 +15,7 @@ func GetDecks(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 
 	rows, err := database.DB.Query(`
-		SELECT d.id, d.user_id, d.name, d.description, d.created_at, d.updated_at,
+		SELECT d.id, d.user_id, d.name, d.description, d.public, d.created_at, d.updated_at,
 			   (SELECT COUNT(*) FROM cards WHERE deck_id = d.id) as card_count
 		FROM decks d
 		WHERE d.user_id = ?
@@ -29,7 +30,8 @@ func GetDecks(w http.ResponseWriter, r *http.Request) {
 	decks := []models.Deck{}
 	for rows.Next() {
 		var deck models.Deck
-		if err := rows.Scan(&deck.ID, &deck.UserID, &deck.Name, &deck.Description, &deck.CreatedAt, &deck.UpdatedAt, &deck.CardCount); err != nil {
+		if err := rows.Scan(&deck.ID, &deck.UserID, &deck.Name, &deck.Description, &deck.Public, &deck.CreatedAt, &deck.UpdatedAt, &deck.CardCount); err != nil {
+			slog.Warn("Failed to scan deck", "error", err)
 			continue
 		}
 		decks = append(decks, deck)
@@ -49,11 +51,11 @@ func GetDeck(w http.ResponseWriter, r *http.Request) {
 
 	var deck models.Deck
 	err = database.DB.QueryRow(`
-		SELECT d.id, d.user_id, d.name, d.description, d.created_at, d.updated_at,
+		SELECT d.id, d.user_id, d.name, d.description, d.public, d.created_at, d.updated_at,
 			   (SELECT COUNT(*) FROM cards WHERE deck_id = d.id) as card_count
 		FROM decks d
-		WHERE d.id = ? AND d.user_id = ?
-	`, deckID, userID).Scan(&deck.ID, &deck.UserID, &deck.Name, &deck.Description, &deck.CreatedAt, &deck.UpdatedAt, &deck.CardCount)
+		WHERE d.id = ? AND (d.user_id = ? OR d.public = 1)
+	`, deckID, userID).Scan(&deck.ID, &deck.UserID, &deck.Name, &deck.Description, &deck.Public, &deck.CreatedAt, &deck.UpdatedAt, &deck.CardCount)
 	if err != nil {
 		http.Error(w, `{"error": "Deck not found"}`, http.StatusNotFound)
 		return
@@ -77,7 +79,7 @@ func CreateDeck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := database.DB.Exec("INSERT INTO decks (user_id, name, description) VALUES (?, ?, ?)", userID, req.Name, req.Description)
+	result, err := database.DB.Exec("INSERT INTO decks (user_id, name, description, public) VALUES (?, ?, ?, ?)", userID, req.Name, req.Description, req.Public)
 	if err != nil {
 		http.Error(w, `{"error": "Failed to create deck"}`, http.StatusInternalServerError)
 		return
@@ -86,8 +88,8 @@ func CreateDeck(w http.ResponseWriter, r *http.Request) {
 	deckID, _ := result.LastInsertId()
 
 	var deck models.Deck
-	database.DB.QueryRow("SELECT id, user_id, name, description, created_at, updated_at FROM decks WHERE id = ?", deckID).
-		Scan(&deck.ID, &deck.UserID, &deck.Name, &deck.Description, &deck.CreatedAt, &deck.UpdatedAt)
+	database.DB.QueryRow("SELECT id, user_id, name, description, public, created_at, updated_at FROM decks WHERE id = ?", deckID).
+		Scan(&deck.ID, &deck.UserID, &deck.Name, &deck.Description, &deck.Public, &deck.CreatedAt, &deck.UpdatedAt)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -113,7 +115,7 @@ func UpdateDeck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := database.DB.Exec("UPDATE decks SET name = ?, description = ? WHERE id = ? AND user_id = ?", req.Name, req.Description, deckID, userID)
+	result, err := database.DB.Exec("UPDATE decks SET name = ?, description = ?, public = ? WHERE id = ? AND user_id = ?", req.Name, req.Description, req.Public, deckID, userID)
 	if err != nil {
 		http.Error(w, `{"error": "Failed to update deck"}`, http.StatusInternalServerError)
 		return
@@ -126,8 +128,8 @@ func UpdateDeck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var deck models.Deck
-	database.DB.QueryRow("SELECT id, user_id, name, description, created_at, updated_at FROM decks WHERE id = ?", deckID).
-		Scan(&deck.ID, &deck.UserID, &deck.Name, &deck.Description, &deck.CreatedAt, &deck.UpdatedAt)
+	database.DB.QueryRow("SELECT id, user_id, name, description, public, created_at, updated_at FROM decks WHERE id = ?", deckID).
+		Scan(&deck.ID, &deck.UserID, &deck.Name, &deck.Description, &deck.Public, &deck.CreatedAt, &deck.UpdatedAt)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(deck)
@@ -154,4 +156,33 @@ func DeleteDeck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func GetPublicDecks(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
+	rows, err := database.DB.Query(`
+		SELECT d.id, d.user_id, d.name, d.description, d.public, d.created_at, d.updated_at,
+			   (SELECT COUNT(*) FROM cards WHERE deck_id = d.id) as card_count
+		FROM decks d
+		WHERE d.public = 1 AND d.user_id != ?
+		ORDER BY d.updated_at DESC
+	`, userID)
+	if err != nil {
+		http.Error(w, `{"error": "Failed to fetch public decks"}`, http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	decks := []models.Deck{}
+	for rows.Next() {
+		var deck models.Deck
+		if err := rows.Scan(&deck.ID, &deck.UserID, &deck.Name, &deck.Description, &deck.Public, &deck.CreatedAt, &deck.UpdatedAt, &deck.CardCount); err != nil {
+			continue
+		}
+		decks = append(decks, deck)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(decks)
 }

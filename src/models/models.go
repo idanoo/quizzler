@@ -15,6 +15,7 @@ type Deck struct {
 	UserID      int       `json:"user_id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
+	Public      bool      `json:"public"`
 	CardCount   int       `json:"card_count,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
@@ -49,11 +50,13 @@ type AuthResponse struct {
 type CreateDeckRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	Public      bool   `json:"public"`
 }
 
 type UpdateDeckRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	Public      bool   `json:"public"`
 }
 
 // Cards

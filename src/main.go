@@ -49,6 +49,7 @@ func main() {
 	api.Handle("POST /login", http.HandlerFunc(handlers.Login))
 
 	api.Handle("GET /decks", middleware.AuthMiddleware(http.HandlerFunc(handlers.GetDecks)))
+	api.Handle("GET /decks/public", middleware.AuthMiddleware(http.HandlerFunc(handlers.GetPublicDecks)))
 	api.Handle("POST /decks", middleware.AuthMiddleware(http.HandlerFunc(handlers.CreateDeck)))
 	api.Handle("GET /decks/{id}", middleware.AuthMiddleware(http.HandlerFunc(handlers.GetDeck)))
 	api.Handle("PUT /decks/{id}", middleware.AuthMiddleware(http.HandlerFunc(handlers.UpdateDeck)))

@@ -33,7 +33,11 @@
   <div class="auth-container">
     <div class="auth-header">
       <div class="logo">
-        <span class="logo-icon">◈</span>
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="4" width="20" height="16" rx="2"/>
+          <path d="M9 9a3 3 0 1 1 3 3v1"/>
+          <circle cx="12" cy="16" r="0.5" fill="currentColor"/>
+        </svg>
         <h1>Quizzler</h1>
       </div>
       <p class="tagline">Master anything, one card at a time</p>
@@ -123,9 +127,10 @@
   }
 
   .logo-icon {
-    font-size: 2.5rem;
+    width: 48px;
+    height: 48px;
     color: var(--accent-primary);
-    text-shadow: 0 0 30px var(--accent-glow);
+    filter: drop-shadow(0 0 12px var(--accent-glow));
     animation: pulse 3s ease-in-out infinite;
   }
 

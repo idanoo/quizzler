@@ -6,6 +6,17 @@
 
   const dispatch = createEventDispatcher();
 
+  // Fisher-Yates shuffle
+  function shuffle(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  let shuffledCards = shuffle(cards);
   let currentIndex = 0;
   let isFlipped = false;
   let isComplete = false;
@@ -15,7 +26,7 @@
   }
 
   function nextCard() {
-    if (currentIndex < cards.length - 1) {
+    if (currentIndex < shuffledCards.length - 1) {
       currentIndex++;
       isFlipped = false;
     } else {
@@ -31,6 +42,7 @@
   }
 
   function restart() {
+    shuffledCards = shuffle(cards);
     currentIndex = 0;
     isFlipped = false;
     isComplete = false;
@@ -40,14 +52,14 @@
     dispatch('exit');
   }
 
-  $: currentCard = cards[currentIndex];
+  $: currentCard = shuffledCards[currentIndex];
 </script>
 
 <div class="study-view">
   <div class="content-header">
     <button class="btn btn-ghost" onclick={exit}>← Exit Study</button>
     <h2>{deck.name}</h2>
-    <span class="study-progress">{currentIndex + 1} / {cards.length}</span>
+    <span class="study-progress">{currentIndex + 1} / {shuffledCards.length}</span>
   </div>
 
   {#if !isComplete}
@@ -68,7 +80,7 @@
           Previous
         </button>
         <button class="btn btn-primary" onclick={nextCard}>
-          {currentIndex === cards.length - 1 ? 'Finish' : 'Next'}
+          {currentIndex === shuffledCards.length - 1 ? 'Finish' : 'Next'}
         </button>
       </div>
     </div>

@@ -1,53 +1,71 @@
 package database
 
 import (
-	"fmt"
+	"embed"
 	"log/slog"
+	"path/filepath"
+	"sort"
+	"strings"
 )
 
+//go:embed migrations/*.sql
+var migrationFiles embed.FS
+
 func Migrate() error {
-	migrations := []string{
-		`CREATE TABLE IF NOT EXISTS users (
-			id INT AUTO_INCREMENT PRIMARY KEY,
-			email VARCHAR(255) NOT NULL UNIQUE,
-			password VARCHAR(255) NOT NULL,
-			admin TINYINT NOT NULL DEFAULT 0,
-			active TINYINT NOT NULL DEFAULT 1,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			INDEX email_idx (email),
-			INDEX active_idx (active)
-		)`,
-		`CREATE TABLE IF NOT EXISTS decks (
-			id INT AUTO_INCREMENT PRIMARY KEY,
-			user_id INT NOT NULL,
-			name VARCHAR(255) NOT NULL,
-			description TEXT,
-			active TINYINT NOT NULL DEFAULT 1,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-			INDEX name_idx (name),
-			INDEX active_name_idx (active, name)
-		)`,
-		`CREATE TABLE IF NOT EXISTS cards (
-			id INT AUTO_INCREMENT PRIMARY KEY,
-			deck_id INT NOT NULL,
-			front TEXT NOT NULL,
-			back TEXT NOT NULL,
-			active TINYINT NOT NULL DEFAULT 1,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			FOREIGN KEY (deck_id) REFERENCES decks(id) ON DELETE CASCADE
-		)`,
+	_, err := DB.Exec(`
+		CREATE TABLE IF NOT EXISTS schema_migrations (
+			version VARCHAR(255) PRIMARY KEY,
+			applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return err
 	}
 
-	for _, migration := range migrations {
-		if _, err := DB.Exec(migration); err != nil {
-			return fmt.Errorf("migration failed: %v", err)
+	entries, err := migrationFiles.ReadDir("migrations")
+	if err != nil {
+		return err
+	}
+
+	var files []string
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
+			files = append(files, entry.Name())
+		}
+	}
+	sort.Strings(files)
+
+	for _, file := range files {
+		version := strings.TrimSuffix(file, filepath.Ext(file))
+
+		var count int
+		err := DB.QueryRow("SELECT COUNT(*) FROM schema_migrations WHERE version = ?", version).Scan(&count)
+		if err != nil {
+			return err
+		}
+		if count > 0 {
+			continue
+		}
+
+		content, err := migrationFiles.ReadFile("migrations/" + file)
+		if err != nil {
+			return err
+		}
+
+		slog.Info("Running migration", "version", version)
+		_, err = DB.Exec(string(content))
+		if err != nil {
+			slog.Error("Migration failed", "version", version, "error", err)
+			return err
+		}
+
+		// Record migration
+		_, err = DB.Exec("INSERT INTO schema_migrations (version) VALUES (?)", version)
+		if err != nil {
+			return err
 		}
 	}
 
-	slog.Info("Migrations completed successfully")
+	slog.Info("Migrations completed")
 	return nil
 }

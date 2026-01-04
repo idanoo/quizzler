@@ -9,6 +9,7 @@
   let view = 'decks';
   let currentDeck = null;
   let currentCards = [];
+  let isPublicDeck = false;
   let loading = false;
 
   onMount(() => {
@@ -59,6 +60,7 @@
   function openDeck(event) {
     currentDeck = event.detail.deck;
     currentCards = event.detail.cards;
+    isPublicDeck = event.detail.isPublic || false;
     navigate(`/deck/${currentDeck.id}`);
   }
 
@@ -67,6 +69,7 @@
   }
 
   function backToDecks() {
+    isPublicDeck = false;
     navigate('/');
   }
 
@@ -82,7 +85,11 @@
 <div class="main-view">
   <header class="main-header">
     <div class="header-left">
-      <span class="logo-icon">◈</span>
+      <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="4" width="20" height="16" rx="2"/>
+        <path d="M9 9a3 3 0 1 1 3 3v1"/>
+        <circle cx="12" cy="16" r="0.5" fill="currentColor"/>
+      </svg>
       <span class="header-title">Quizzler</span>
     </div>
     <div class="header-right">
@@ -100,6 +107,7 @@
       <DeckView
         deck={currentDeck}
         cards={currentCards}
+        readOnly={isPublicDeck}
         on:back={backToDecks}
         on:study={startStudy}
         on:cardsUpdate={handleCardsUpdate}
@@ -139,9 +147,10 @@
   }
 
   .logo-icon {
-    font-size: 1.5rem;
+    width: 28px;
+    height: 28px;
     color: var(--accent-primary);
-    text-shadow: 0 0 30px var(--accent-glow);
+    filter: drop-shadow(0 0 8px var(--accent-glow));
   }
 
   .header-title {

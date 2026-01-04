@@ -18,10 +18,11 @@ func GetCards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify deck belongs to user
+	// Verify deck belongs to user or is public
 	var deckUserID int
-	err = database.DB.QueryRow("SELECT user_id FROM decks WHERE id = ?", deckID).Scan(&deckUserID)
-	if err != nil || deckUserID != userID {
+	var isPublic bool
+	err = database.DB.QueryRow("SELECT user_id, public FROM decks WHERE id = ?", deckID).Scan(&deckUserID, &isPublic)
+	if err != nil || (deckUserID != userID && !isPublic) {
 		http.Error(w, `{"error": "Deck not found"}`, http.StatusNotFound)
 		return
 	}

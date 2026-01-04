@@ -62,10 +62,11 @@ export async function register(email, password) {
 // Decks
 export const getDecks = () => api('/decks');
 export const getDeck = (id) => api(`/decks/${id}`);
-export const createDeck = (name, description) =>
-  api('/decks', { method: 'POST', body: { name, description } });
-export const updateDeck = (id, name, description) =>
-  api(`/decks/${id}`, { method: 'PUT', body: { name, description } });
+export const getPublicDecks = () => api('/decks/public');
+export const createDeck = (name, description, isPublic = false) =>
+  api('/decks', { method: 'POST', body: { name, description, public: isPublic } });
+export const updateDeck = (id, name, description, isPublic = false) =>
+  api(`/decks/${id}`, { method: 'PUT', body: { name, description, public: isPublic } });
 export const deleteDeck = (id) => api(`/decks/${id}`, { method: 'DELETE' });
 
 // Cards
