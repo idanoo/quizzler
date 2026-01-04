@@ -1,7 +1,7 @@
 # Quizzler
 
 Simple self-hosted quiz/flashcard app with a Go API and Svelte frontend.
-Supports importing quizlet exports.
+Supports importing quizlet exports (Use :::: as the term/definition separator and  ;;;; as the beween rows separator).
 
 ## Requirements
 - Docker

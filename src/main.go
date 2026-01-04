@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"quizzler/cache"
 	"quizzler/database"
@@ -62,7 +64,7 @@ func main() {
 	// Main router
 	mux := http.NewServeMux()
 	mux.Handle("/api/", http.StripPrefix("/api", middleware.JSONMiddleware(api)))
-	mux.Handle("/", http.FileServer(http.Dir("/web")))
+	mux.Handle("/", spaHandler("/web"))
 
 	port := os.Getenv("BACKEND_PORT")
 	if port == "" {
@@ -74,4 +76,27 @@ func main() {
 		slog.Error("Failed to listen", "error", err)
 		os.Exit(1)
 	}
+}
+
+// spaHandler serves static files and falls back to index.html for SPA routes
+func spaHandler(staticPath string) http.Handler {
+	fs := http.Dir(staticPath)
+	fileServer := http.FileServer(fs)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+
+		// Check if file exists
+		if f, err := fs.Open(path); err == nil {
+			f.Close()
+			// Check if it's a file (has extension) or exact match
+			if strings.Contains(filepath.Base(path), ".") || path == "/" {
+				fileServer.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		// Serve index.html for SPA routes
+		http.ServeFile(w, r, filepath.Join(staticPath, "index.html"))
+	})
 }
