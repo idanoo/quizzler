@@ -127,18 +127,18 @@
       return;
     }
 
-    const lines = importText.trim().split('\n');
+    const entries = importText.trim().split(';;;;');
     const cardsToImport = [];
 
-    for (const line of lines) {
-      const parts = line.split('\t');
+    for (const entry of entries) {
+      const parts = entry.split('::::');
       if (parts.length >= 2) {
         cardsToImport.push({ front: parts[0].trim(), back: parts[1].trim() });
       }
     }
 
     if (cardsToImport.length === 0) {
-      modalError = 'No valid cards found. Use tab-separated format: Question<tab>Answer';
+      modalError = 'No valid cards found. Use format: Question::::Answer;;;;';
       return;
     }
 
@@ -270,15 +270,15 @@
   <Modal title="Import Cards" on:close={() => (showImportModal = false)}>
     <form onsubmit={(e) => { e.preventDefault(); handleImport(); }}>
       <div class="form-group">
-        <label for="import-text">Paste tab-separated content</label>
+        <label for="import-text">Paste formatted content</label>
         <textarea
           id="import-text"
           bind:value={importText}
           required
-          placeholder="Question&#9;Answer&#10;What is 2+2?&#9;4&#10;Capital of France?&#9;Paris"
+          placeholder="What is 2+2?::::4;;;;Capital of France?::::Paris;;;;"
           class="import-textarea"
         ></textarea>
-        <p class="form-hint">Format: Question&lt;tab&gt;Answer (one per line)</p>
+        <p class="form-hint">Format: Question::::Answer;;;;</p>
       </div>
       {#if modalError}
         <p class="error-message">{modalError}</p>

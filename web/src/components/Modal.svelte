@@ -20,11 +20,17 @@
       close();
     }
   }
+
+  function handleBackdropKeydown(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      close();
+    }
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="modal-backdrop" onclick={handleBackdropClick} role="dialog" aria-modal="true">
+<div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleBackdropKeydown} role="dialog" aria-modal="true" tabindex="-1">
   <div class="modal-content">
     <div class="modal-header">
       <h3>{title}</h3>
