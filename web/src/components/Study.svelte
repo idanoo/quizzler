@@ -20,24 +20,53 @@
   let currentIndex = 0;
   let isFlipped = false;
   let isComplete = false;
+  let isTransitioning = false;
+
+  const FLIP_DURATION = 600; // matches CSS transition duration
 
   function flipCard() {
-    isFlipped = !isFlipped;
+    if (!isTransitioning) {
+      isFlipped = !isFlipped;
+    }
   }
 
   function nextCard() {
+    if (isTransitioning) return;
+    
     if (currentIndex < shuffledCards.length - 1) {
-      currentIndex++;
-      isFlipped = false;
+      if (isFlipped) {
+        // Flip back to front first, then change card
+        isTransitioning = true;
+        isFlipped = false;
+        setTimeout(() => {
+          currentIndex++;
+          isTransitioning = false;
+        }, FLIP_DURATION);
+      } else {
+        // Already showing front, just change card
+        currentIndex++;
+      }
     } else {
       isComplete = true;
     }
   }
 
   function prevCard() {
+    if (isTransitioning) return;
+    
     if (currentIndex > 0) {
-      currentIndex--;
-      isFlipped = false;
+      if (isFlipped) {
+        // Flip back to front first, then change card
+        isTransitioning = true;
+        isFlipped = false;
+        setTimeout(() => {
+          currentIndex--;
+          isTransitioning = false;
+        }, FLIP_DURATION);
+      } else {
+        // Already showing front, just change card
+        currentIndex--;
+      }
     }
   }
 
