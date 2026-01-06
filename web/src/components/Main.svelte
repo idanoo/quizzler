@@ -84,14 +84,14 @@
 
 <div class="main-view">
   <header class="main-header">
-    <div class="header-left">
+    <button class="header-left" onclick={backToDecks}>
       <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2" y="4" width="20" height="16" rx="2"/>
         <path d="M9 9a3 3 0 1 1 3 3v1"/>
         <circle cx="12" cy="16" r="0.5" fill="currentColor"/>
       </svg>
       <span class="header-title">Quizzler</span>
-    </div>
+    </button>
     <div class="header-right">
       <span class="user-email">{$user?.email}</span>
       <button class="btn btn-ghost" onclick={logout}>Sign Out</button>
@@ -144,6 +144,17 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    margin: -8px -12px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+  }
+
+  .header-left:hover {
+    background: var(--bg-elevated);
   }
 
   .logo-icon {

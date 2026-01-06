@@ -18,11 +18,15 @@
 
   let shuffledCards = shuffle(cards);
   let currentIndex = 0;
+  let displayIndex = 0; // The card currently displayed
+  let prevIndex = null; // The card sliding out
+  let prevFlipped = false; // Whether the outgoing card was flipped
   let isFlipped = false;
   let isComplete = false;
   let isTransitioning = false;
+  let slideDirection = null; // 'next' or 'prev'
 
-  const FLIP_DURATION = 600; // matches CSS transition duration
+  const SLIDE_DURATION = 400; // slide animation duration
 
   function flipCard() {
     if (!isTransitioning) {
@@ -30,22 +34,29 @@
     }
   }
 
+  function changeCard(delta) {
+    prevIndex = currentIndex;
+    prevFlipped = isFlipped;
+    currentIndex += delta;
+    displayIndex = currentIndex;
+    slideDirection = delta > 0 ? 'next' : 'prev';
+    isFlipped = false;
+    isTransitioning = true;
+    
+    // Clear previous card after animation completes
+    setTimeout(() => {
+      prevIndex = null;
+      prevFlipped = false;
+      slideDirection = null;
+      isTransitioning = false;
+    }, SLIDE_DURATION);
+  }
+
   function nextCard() {
     if (isTransitioning) return;
     
     if (currentIndex < shuffledCards.length - 1) {
-      if (isFlipped) {
-        // Flip back to front first, then change card
-        isTransitioning = true;
-        isFlipped = false;
-        setTimeout(() => {
-          currentIndex++;
-          isTransitioning = false;
-        }, FLIP_DURATION);
-      } else {
-        // Already showing front, just change card
-        currentIndex++;
-      }
+      changeCard(1);
     } else {
       isComplete = true;
     }
@@ -55,20 +66,12 @@
     if (isTransitioning) return;
     
     if (currentIndex > 0) {
-      if (isFlipped) {
-        // Flip back to front first, then change card
-        isTransitioning = true;
-        isFlipped = false;
-        setTimeout(() => {
-          currentIndex--;
-          isTransitioning = false;
-        }, FLIP_DURATION);
-      } else {
-        // Already showing front, just change card
-        currentIndex--;
-      }
+      changeCard(-1);
     }
   }
+
+  $: currentCard = shuffledCards[displayIndex];
+  $: prevCard_ = prevIndex !== null ? shuffledCards[prevIndex] : null;
 
   function restart() {
     shuffledCards = shuffle(cards);
@@ -80,8 +83,6 @@
   function exit() {
     dispatch('exit');
   }
-
-  $: currentCard = shuffledCards[currentIndex];
 </script>
 
 <div class="study-view">
@@ -93,16 +94,44 @@
 
   {#if !isComplete}
     <div class="study-area">
-      <button class="flashcard" class:flipped={isFlipped} onclick={flipCard}>
-        <div class="flashcard-inner">
-          <div class="flashcard-front">
-            <p>{currentCard.front}</p>
+      <div class="flashcard-container">
+        <!-- Outgoing card (slides out) -->
+        {#if prevCard_}
+          <div 
+            class="flashcard"
+            class:flipped={prevFlipped}
+            class:slide-out-left={slideDirection === 'next'}
+            class:slide-out-right={slideDirection === 'prev'}
+          >
+            <div class="flashcard-inner">
+              <div class="flashcard-front">
+                <p>{prevCard_.front}</p>
+              </div>
+              <div class="flashcard-back">
+                <p>{prevCard_.back}</p>
+              </div>
+            </div>
           </div>
-          <div class="flashcard-back">
-            <p>{currentCard.back}</p>
+        {/if}
+        
+        <!-- Current card -->
+        <button 
+          class="flashcard" 
+          class:flipped={isFlipped}
+          class:slide-in-right={slideDirection === 'next'}
+          class:slide-in-left={slideDirection === 'prev'}
+          onclick={flipCard}
+        >
+          <div class="flashcard-inner">
+            <div class="flashcard-front">
+              <p>{currentCard.front}</p>
+            </div>
+            <div class="flashcard-back">
+              <p>{currentCard.back}</p>
+            </div>
           </div>
-        </div>
-      </button>
+        </button>
+      </div>
       <p class="flip-hint">Click card to flip</p>
       <div class="study-controls">
         <button class="btn btn-secondary" onclick={prevCard} disabled={currentIndex === 0}>
@@ -153,16 +182,89 @@
     padding: 40px 20px;
   }
 
-  .flashcard {
+  .flashcard-container {
     width: 100%;
     max-width: 600px;
     height: 380px;
+    position: relative;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .flashcard {
+    width: 100%;
+    height: 100%;
     perspective: 1000px;
     cursor: pointer;
-    margin-bottom: 16px;
     background: none;
     border: none;
     padding: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  /* Slide animations */
+  .flashcard.slide-in-right {
+    animation: slideInFromRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  .flashcard.slide-in-left {
+    animation: slideInFromLeft 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  .flashcard.slide-out-left {
+    animation: slideOutToLeft 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    pointer-events: none;
+  }
+
+  .flashcard.slide-out-right {
+    animation: slideOutToRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    pointer-events: none;
+  }
+
+  @keyframes slideInFromRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideInFromLeft {
+    from {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideOutToLeft {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes slideOutToRight {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
   }
 
   .flashcard-inner {
@@ -175,6 +277,14 @@
 
   .flashcard.flipped .flashcard-inner {
     transform: rotateY(180deg);
+  }
+
+  /* Disable flip transition during slide animations */
+  .flashcard.slide-in-right .flashcard-inner,
+  .flashcard.slide-in-left .flashcard-inner,
+  .flashcard.slide-out-left .flashcard-inner,
+  .flashcard.slide-out-right .flashcard-inner {
+    transition: none;
   }
 
   .flashcard-front,
@@ -257,7 +367,7 @@
   }
 
   @media (max-width: 768px) {
-    .flashcard {
+    .flashcard-container {
       height: 300px;
     }
 

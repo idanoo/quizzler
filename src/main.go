@@ -45,8 +45,8 @@ func main() {
 
 	// API routes
 	api := http.NewServeMux()
-	api.Handle("POST /register", http.HandlerFunc(handlers.Register))
-	api.Handle("POST /login", http.HandlerFunc(handlers.Login))
+	api.Handle("POST /register", middleware.RateLimit(3)(http.HandlerFunc(handlers.Register)))
+	api.Handle("POST /login", middleware.RateLimit(10)(http.HandlerFunc(handlers.Login)))
 
 	api.Handle("GET /decks", middleware.AuthMiddleware(http.HandlerFunc(handlers.GetDecks)))
 	api.Handle("GET /decks/public", middleware.AuthMiddleware(http.HandlerFunc(handlers.GetPublicDecks)))

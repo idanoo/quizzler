@@ -86,6 +86,35 @@ func Exists(key string) bool {
 	return err == nil && result > 0
 }
 
+// IsAvailable returns true if Redis is connected and available
+func IsAvailable() bool {
+	if client == nil {
+		return false
+	}
+	return client.Ping(ctx).Err() == nil
+}
+
+// Increment increments a key and sets expiry if it's a new key
+// Returns the new count after incrementing
+func Increment(key string, ttl time.Duration) (int64, error) {
+	if client == nil {
+		return 0, fmt.Errorf("redis client not initialized")
+	}
+
+	// Use INCR to atomically increment
+	count, err := client.Incr(ctx, key).Result()
+	if err != nil {
+		return 0, err
+	}
+
+	// If this is the first increment (count == 1), set the expiry
+	if count == 1 {
+		client.Expire(ctx, key, ttl)
+	}
+
+	return count, nil
+}
+
 func UserKey(userID int) string {
 	return fmt.Sprintf("user:%d", userID)
 }
