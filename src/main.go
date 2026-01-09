@@ -86,18 +86,14 @@ func spaHandler(staticPath string) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-
-		// Check if file exists
 		if f, err := fs.Open(path); err == nil {
 			f.Close()
-			// Check if it's a file (has extension) or exact match
 			if strings.Contains(filepath.Base(path), ".") || path == "/" {
 				fileServer.ServeHTTP(w, r)
 				return
 			}
 		}
 
-		// Serve index.html for SPA routes
 		http.ServeFile(w, r, filepath.Join(staticPath, "index.html"))
 	})
 }

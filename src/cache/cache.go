@@ -101,7 +101,6 @@ func Increment(key string, ttl time.Duration) (int64, error) {
 		return 0, fmt.Errorf("redis client not initialized")
 	}
 
-	// Use INCR to atomically increment
 	count, err := client.Incr(ctx, key).Result()
 	if err != nil {
 		return 0, err

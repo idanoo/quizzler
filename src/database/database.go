@@ -22,7 +22,7 @@ func Init() error {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&multiStatements=true", user, password, host, port, dbname)
 
 	var err error
-	for i := 0; i < 30; i++ {
+	for i := range 30 {
 		DB, err = sql.Open("mysql", dsn)
 		if err == nil {
 			err = DB.Ping()

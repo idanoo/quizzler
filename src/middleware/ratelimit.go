@@ -10,10 +10,8 @@ import (
 	"quizzler/cache"
 )
 
-// Default rate limit window
 var RateLimitWindow = time.Minute
 
-// RateLimit creates a rate limiting middleware with the specified max requests per window
 func RateLimit(maxRequests int) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
