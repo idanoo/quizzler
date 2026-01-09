@@ -47,6 +47,9 @@ func main() {
 	api := http.NewServeMux()
 	api.Handle("POST /register", middleware.RateLimit(3)(http.HandlerFunc(handlers.Register)))
 	api.Handle("POST /login", middleware.RateLimit(10)(http.HandlerFunc(handlers.Login)))
+	api.Handle("GET /public-decks", middleware.RateLimit(15)(http.HandlerFunc(handlers.GetPublicDecksBrowse)))
+	api.Handle("GET /public-decks/{id}", middleware.RateLimit(30)(http.HandlerFunc(handlers.GetPublicDeck)))
+	api.Handle("GET /public-decks/{id}/cards", middleware.RateLimit(30)(http.HandlerFunc(handlers.GetPublicDeckCards)))
 
 	api.Handle("GET /decks", middleware.AuthMiddleware(http.HandlerFunc(handlers.GetDecks)))
 	api.Handle("GET /decks/public", middleware.AuthMiddleware(http.HandlerFunc(handlers.GetPublicDecks)))

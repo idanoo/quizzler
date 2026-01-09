@@ -63,6 +63,21 @@ export async function register(email, password) {
 export const getDecks = () => api('/decks');
 export const getDeck = (id) => api(`/decks/${id}`);
 export const getPublicDecks = () => api('/decks/public');
+export const getPublicDecksBrowse = async () => {
+  const response = await fetch('/api/public-decks');
+  if (!response.ok) throw new Error('Failed to fetch public decks');
+  return response.json();
+};
+export const getPublicDeck = async (id) => {
+  const response = await fetch(`/api/public-decks/${id}`);
+  if (!response.ok) throw new Error('Deck not found');
+  return response.json();
+};
+export const getPublicDeckCards = async (id) => {
+  const response = await fetch(`/api/public-decks/${id}/cards`);
+  if (!response.ok) throw new Error('Failed to fetch cards');
+  return response.json();
+};
 export const createDeck = (name, description, isPublic = false) =>
   api('/decks', { method: 'POST', body: { name, description, public: isPublic } });
 export const updateDeck = (id, name, description, isPublic = false) =>
